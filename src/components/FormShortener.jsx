@@ -1,40 +1,37 @@
 import React from "react";
 import imageUrl from "../../public/bg-shorten-desktop.svg";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import CopyButton from "./CopyButton";
 
 export default function FormShortener() {
   const [url, setUrl] = useState("");
   const [urlHistory, setUrlHistory] = useState([]);
-  const [isCopy, setIsCopy] = useState(false);
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    axios
-      .get(`https://api.shrtco.de/v2/shorten?url=${url}`)
-      .then((response) => {
-        setUrlHistory([
-          ...urlHistory,
-          {
-            urlOriginal: response.data.result.original_link,
-            urlShortened: response.data.result.short_link,
-          },
-        ]);
-        setUrl("");
-      })
-      .catch((error) => console.error(error));
+    try {
+      const response = await axios.get(
+        `https://api.shrtco.de/v2/shorten?url=${url}`
+      );
+      const newUrl = {
+        urlOriginal: response.data.result.original_link,
+        urlShortened: response.data.result.short_link,
+      };
+      setUrlHistory([...urlHistory, newUrl]);
+      setUrl("");
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleCopy = (urlShortened) => {
-    navigator.clipboard.writeText(urlShortened).then(() => {
-      setIsCopy(true);
-      setTimeout(() => {
-        setIsCopy(false);
-      }, 5000);
-    });
+  useEffect(() => {
+    const saveLocalStorage = () => {
+      localStorage.setItem("urlsShortened", JSON.stringify(urlHistory));
+    };
+    saveLocalStorage();
+  }, [urlHistory]);
 
-
-  };
   return (
     <div>
       <div
@@ -70,16 +67,7 @@ export default function FormShortener() {
             </div>
             <div className="flex gap-3 justify-center items-center">
               <p className="font-[Poppins] text-cyan-500">{url.urlShortened}</p>
-              <button
-                onClick={() => handleCopy(url.urlShortened)}
-                className={`py-2 px-7 text-center capitalize ${
-                  isCopy
-                    ? "bg-[#2c2451] hover:bg-[#45387d] pointer-events-none cursor-not-allowed"
-                    : "bg-cyan-500 hover:bg-cyan-400 cursor-pointer"
-                }  duration-200 text-bold text-white rounded-lg`}
-              >
-                {isCopy ? "copied!" : "Copy"}
-              </button>
+              <CopyButton urlShortened={url.urlShortened} />
             </div>
           </div>
         ))}
